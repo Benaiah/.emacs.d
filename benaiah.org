@@ -718,8 +718,9 @@ Enable some modes I want on by default
   (use-package org :quelpa
     :config
     (add-hook 'org-mode-hook 'org-indent-mode)
-    (message "org-preview-html")
-    (use-package org-preview-html :quelpa (:stable nil))
+
+    ;; (message "org-preview-html")
+    ;; (use-package org-preview-html :quelpa (:stable nil))
 
     (require 'cl-lib)
     (defun org-nav-get-regex-ocurrences-with-positions (regexp string)
