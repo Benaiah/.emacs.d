@@ -218,8 +218,6 @@ Enable some modes I want on by default
       (kill-sexp -1)
       (insert (format "%S" value))))
   (global-set-key (kbd "C-c m") 'replace-last-sexp)
-                                          ; (require 'moe-theme
-                                          ; (powerline-moe-theme)
   (setq system-uses-terminfo nil)
   (setq debug-on-quit nil)
 
@@ -304,21 +302,18 @@ Enable some modes I want on by default
 #+end_src
 ** themes
 #+begin_src emacs-lisp
-  (message "base16-theme")
-  (use-package base16-theme :quelpa (:stable nil))
-  (message "color-theme-sanityinc-solarized")
-  (use-package color-theme-sanityinc-solarized :quelpa)
-  (message "color-theme-sanityinc-tomorrow")
-  (use-package color-theme-sanityinc-tomorrow :quelpa)
-  (message "solarized-theme")
-  (use-package solarized-theme :quelpa)
-  (setq solarized-use-variable-pitch nil)
+  ;; (message "base16-theme")
+  ;; (use-package base16-theme :quelpa (:stable nil))
+  ;; (message "color-theme-sanityinc-solarized")
+  ;; (use-package color-theme-sanityinc-solarized :quelpa)
+  ;; (message "color-theme-sanityinc-tomorrow")
+  ;; (use-package color-theme-sanityinc-tomorrow :quelpa)
+  ;; (message "solarized-theme")
+  ;; (use-package solarized-theme :quelpa)
+  ;; (setq solarized-use-variable-pitch nil)
 
-  (message "gotham-theme")
-  (use-package gotham-theme :quelpa)
-
-  (message "gruvbox-theme")
-  (use-package gruvbox-theme :quelpa (:stable nil))
+  ;; (message "gruvbox-theme")
+  ;; (use-package gruvbox-theme :quelpa (:stable nil))
 #+end_src
 
 * lisp hook
