@@ -1,0 +1,905 @@
+* quelpa bootstrap
+This will install or upgrade quelpa when necessary.
+#+begin_src emacs-lisp
+  (package-initialize)
+  (if (require 'quelpa nil t)
+      (quelpa-self-upgrade)
+    (with-temp-buffer
+      (url-insert-file-contents "https://raw.github.com/quelpa/quelpa/master/bootstrap.el")
+      (eval-buffer)))
+
+  ;; Make quelpa prefer melpa-stable over melpa
+  (setq quelpa-stable-p t)
+#+end_src
+* quelpa-use-package
+#+begin_src emacs-lisp
+  (quelpa
+   '(quelpa-use-package
+     :fetcher github
+     :repo "quelpa/quelpa-use-package"
+     :stable nil))
+  (require 'quelpa-use-package)
+#+end_src
+* customize file
+#+begin_src emacs-lisp
+  (setq custom-file "~/.emacs.d/emacs-custom.el")
+
+  (if (file-exists-p custom-file)
+      (load custom-file)
+    (write-region "" nil custom-file))
+#+end_src
+* better defaults
+
+Disable dialog boxes (annnoying and crash graphical emacs on OS X)
+#+begin_src emacs-lisp
+  (defadvice yes-or-no-p (around prevent-dialog activate)
+    "Prevent yes-or-no-p from activating a dialog"
+    (let ((use-dialog-box nil))
+      ad-do-it))
+  (defadvice y-or-n-p (around prevent-dialog-yorn activate)
+    "Prevent y-or-n-p from activating a dialog"
+    (let ((use-dialog-box nil))
+      ad-do-it))
+#+end_src
+
+Better scrolling
+#+begin_src emacs-lisp
+  (setq scroll-step 1)
+  (setq scroll-conservatively 10000)
+  (setq auto-window-vscroll nil)
+
+  (setq mouse-wheel-scroll-amount '(2 ((shift) . 5) ((control) . 10)))
+  (setq mouse-wheel-progressive-speed nil)
+#+end_src
+
+Indentation
+#+begin_src emacs-lisp
+   (setq indent-tabs-mode nil)
+   (setq tab-width 2)
+   (setq c-basic-offset 2)
+   (setq cperl-indent-level 2)
+   (setq coffee-tab-width 2)
+   (setq js-indent-level 2)
+   (electric-indent-mode t)
+
+   (setq adaptive-wrap-extra-indent 2)
+   (when (fboundp 'adaptive-wrap-prefix-mode)
+     (defun my-activate-adaptive-wrap-prefix-mode ()
+       "Toggle `visual-line-mode' and `adaptive-wrap-prefix-mode' simultaneously."
+       (adaptive-wrap-prefix-mode (if visual-line-mode 1 -1)))
+       (add-hook 'visual-line-mode-hook 'my-activate-adaptive-wrap-prefix-mode))
+#+end_src
+
+Disable auto fill because it sucks
+#+begin_src emacs-lisp
+     (auto-fill-mode -1)
+     (remove-hook 'text-mode-hook 'turn-on-auto-fill)
+#+end_src
+
+We can set variables to whatever value we'd like using =setq=.
+#+BEGIN_SRC emacs-lisp
+     (setq default-input-method "TeX"    ; Use TeX when toggeling input method.
+           doc-view-continuous t         ; At page edge goto next/previous.
+           echo-keystrokes 0.1           ; Show keystrokes asap.
+           inhibit-startup-message t     ; No splash screen please.
+           initial-scratch-message nil   ; Clean scratch buffer.
+          ring-bell-function 'ignore    ; Quiet.
+           undo-tree-auto-save-history t ; Save undo history between sessions.
+           undo-tree-history-directory-alist
+           ;; Put undo-history files in a directory, if it exists.
+           (let ((undo-dir (concat user-emacs-directory "undo")))
+             (and (file-exists-p undo-dir)
+                  (list (cons "." undo-dir)))))
+#+END_SRC
+
+Some variables are buffer-local, so changing them using =setq= will only
+change them in a single buffer. Using =setq-default= we change the
+buffer-local variable's default value.
+#+BEGIN_SRC emacs-lisp
+   (setq-default indent-tabs-mode nil              ; Use spaces instead of tabs.
+                 split-width-threshold 100)        ; Split verticly by default.
+#+END_SRC
+
+The =load-path= specifies where Emacs should look for =.el=-files (or
+Emacs lisp files). I have a directory called =site-lisp= where I keep all
+extensions that have been installed manually (these are mostly my own
+projects).
+#+BEGIN_SRC emacs-lisp
+   (let ((default-directory (concat user-emacs-directory "lisp/")))
+     (when (file-exists-p default-directory)
+       (normal-top-level-add-to-load-path '("."))
+       (normal-top-level-add-subdirs-to-load-path)))
+#+END_SRC
+
+Answering /yes/ and /no/ to each question from Emacs can be tedious, a
+single /y/ or /n/ will suffice.
+#+BEGIN_SRC emacs-lisp
+   (fset 'yes-or-no-p 'y-or-n-p)
+#+END_SRC
+
+To avoid file system clutter we put all auto saved files in a single
+directory.
+#+BEGIN_SRC emacs-lisp
+   (defvar emacs-autosave-directory
+     (concat user-emacs-directory "autosaves/")
+     "This variable dictates where to put auto saves. It is set to a
+     directory called autosaves located wherever your .emacs.d/ is
+     located.")
+
+   ;; Sets all files to be backed up and auto saved in a single directory.
+   (setq backup-directory-alist
+         `((".*" . ,emacs-autosave-directory))
+         auto-save-file-name-transforms
+         `((".*" ,emacs-autosave-directory t)))
+#+END_SRC
+
+Set =utf-8= as preferred coding system.
+#+BEGIN_SRC emacs-lisp
+   (set-language-environment "UTF-8")
+#+END_SRC
+
+By default the =narrow-to-region= command is disabled and issues a
+warning, because it might confuse new users. I find it useful sometimes,
+and don't want to be warned.
+#+BEGIN_SRC emacs-lisp
+   (put 'narrow-to-region 'disabled nil)
+#+END_SRC
+
+Automaticly revert =doc-view=-buffers when the file changes on disk.
+#+BEGIN_SRC emacs-lisp
+   (add-hook 'doc-view-mode-hook 'auto-revert-mode)
+#+END_SRC
+
+Make mouse-1 click links correctly
+#+begin_src emacs-lisp
+   (setq mouse-1-click-follows-link t)
+#+end_src
+
+Visual line mode with indentation fix
+#+begin_src emacs-lisp
+  (global-visual-line-mode t)
+#+end_src
+
+Enable some modes I want on by default
+#+begin_src emacs-lisp
+  (dolist (mode
+           '(abbrev-mode
+             delete-selection-mode
+             recentf-mode))
+    (funcall mode 1))
+#+end_src
+
+* terminal
+#+begin_src emacs-lisp
+  (unless window-system
+    (require 'mouse)
+    (global-set-key [mouse-4] '(lambda ()
+                                (interactive)
+                                (scroll-down 1)))
+    (global-set-key [mouse-5] '(lambda ()
+                                (interactive)
+                                (scroll-up 1)))
+    (setq mouse-sel-mode t))
+#+end_src
+* misc
+#+begin_src emacs-lisp
+  ;; (server-start)
+  (global-set-key (kbd "C-c e") (lambda ()
+                                  (interactive)
+                                  (find-file "~/.emacs.d/benaiah.org")))
+  (defun comment-or-uncomment-region-or-line ()
+    "Comments or uncomments the region or the current line if there's no active region."
+    (interactive)
+    (let (beg end)
+      (if (region-active-p)
+          (setq beg (region-beginning) end (region-end))
+        (setq beg (line-beginning-position) end (line-end-position)))
+      (comment-or-uncomment-region beg end)
+      (next-line)))
+
+  (global-set-key (kbd "C-c ;") 'comment-or-uncomment-region-or-line)
+
+  (defun remove-hard-wrap-paragraph ()
+    "Replace line endings into single spaces on the current paragraph."
+    (interactive)
+    (let ((fill-column 90002000))
+      (fill-paragraph nil)))
+  (define-key global-map "\M-Q" 'remove-hard-wrap-paragraph)
+
+  (setf sentence-end-double-space nil)
+  (setq ispell-program-name "aspell")
+
+  ;; Machine specific settings
+  ;; (load "my-machine-settings.el")
+
+  (defun replace-last-sexp ()
+    (interactive)
+    (let ((value (eval (preceding-sexp))))
+      (kill-sexp -1)
+      (insert (format "%S" value))))
+  (global-set-key (kbd "C-c m") 'replace-last-sexp)
+                                          ; (require 'moe-theme
+                                          ; (powerline-moe-theme)
+  (setq system-uses-terminfo nil)
+  (setq debug-on-quit nil)
+
+  ;; C-a should go back to indentation first
+  (defun smart-line-beginning ()
+    "Move point to the beginning of text on the current line; if that is already
+       the current position of point, then move it to the beginning of the line."
+    (interactive)
+    (let ((pt (point)))
+      (beginning-of-line-text)
+      (when (eq pt (point))
+        (beginning-of-line))))
+  (global-set-key (kbd "C-a") 'smart-line-beginning)
+
+  ;; Kill logical lines
+  (define-key visual-line-mode-map (kbd "C-k") 'kill-line)
+  (visual-line-mode -1)
+  (global-set-key (kbd "C-v") 'scroll-up-command)
+
+  ;; Change GC settings
+  (setq gc-cons-threshold 20000000)
+
+  ;; Don't make lockfiles (.#filename)
+  (setq create-lockfiles nil)
+
+  (setq org-planning-line-re org-planning-or-clock-line-re)
+  (setq org-clock-line-re org-planning-or-clock-line-re)
+
+  ;; Select the help window so we can quit it with 'q'
+  (setq help-window-select t)
+
+  (add-hook 'prog-mode-hook (lambda () (setq-local show-trailing-whitespace t)))
+#+end_src
+
+** Require prefix arg to exit
+#+begin_src emacs-lisp
+;; Thanks jlf
+(defun benaiah-save-buffers-kill-terminal (&optional ya-rly)
+  "Exit iff prefix argument YA-RLY is non-nil"
+  (interactive "P") (if ya-rly (save-buffers-kill-terminal) (message "no wai")))
+(global-set-key (kbd "C-x C-c") 'benaiah-save-buffers-kill-terminal)
+#+end_src
+* look & feel
+#+begin_src emacs-lisp
+  (defmacro with-system (type &rest body)
+      "Evaluate body if `system-type' equals type."
+      `(when (eq system-type ,type)
+         ,@body))
+
+  (with-system 'darwin
+               (setq ns-use-native-fullscreen nil))
+
+  (defun my-look-and-feel ()
+    (interactive)
+    (set-face-attribute 'default nil :height 100)
+    (set-face-attribute 'mode-line nil
+                        :height 100
+                        :box nil)
+
+    ;; Turn off clutter that's on by default
+    (scroll-bar-mode -1)
+    (tool-bar-mode -1)
+    (blink-cursor-mode -1)
+    (set-fringe-mode -1)
+    (menu-bar-mode -1)
+
+    ;; Turn on pre-installed visualization modes
+    (show-paren-mode 1)
+    (column-number-mode 1)
+
+    (set-face-attribute 'mode-line nil
+                        :underline nil
+                        :overline nil)
+    (set-face-attribute 'mode-line-inactive nil
+                        :box nil
+                        :underline nil
+                        :overline nil)
+
+    (set-face-attribute 'default t :font "Source Code Pro")
+    (set-frame-font "Source Code Pro" nil t)
+    (run-hooks 'my-look-and-feel-hook))
+#+end_src
+** themes
+#+begin_src emacs-lisp
+  (message "base16-theme")
+  (use-package base16-theme :quelpa (:stable nil))
+  (message "color-theme-sanityinc-solarized")
+  (use-package color-theme-sanityinc-solarized :quelpa)
+  (message "color-theme-sanityinc-tomorrow")
+  (use-package color-theme-sanityinc-tomorrow :quelpa)
+  (message "solarized-theme")
+  (use-package solarized-theme :quelpa)
+  (setq solarized-use-variable-pitch nil)
+
+  (message "gotham-theme")
+  (use-package gotham-theme :quelpa)
+
+  (message "gruvbox-theme")
+  (use-package gruvbox-theme :quelpa (:stable nil))
+#+end_src
+
+* lisp hook
+#+begin_src emacs-lisp
+  (defun all-lisp-modes-hook-function ()
+      (run-hooks 'all-lisp-modes-hook))
+
+  (dolist (hook '(emacs-lisp-mode-hook
+                  lisp-interaction-mode-hook
+                  scheme-mode-hook
+                  scheme-interaction-mode-hook
+                  clojure-mode-hook
+                  clojurescript-mode-hook))
+    (add-hook hook 'all-lisp-modes-hook-function))
+
+  (run-hooks 'emacs-lisp-mode-hook)
+#+end_src
+
+* modes & packages
+** ag
+#+begin_src emacs-lisp
+  (message "ag")
+  (use-package ag :quelpa
+    :config
+    (setq ag-arguments '("--line-number"
+                         "--smart-case"
+                         "--nogroup"
+                         "--column"
+                         "--stats"
+                         "--width=80"
+                         "--")))
+#+end_src
+
+** aggressive indent
+#+begin_src emacs-lisp
+  (message "aggressive-indent")
+  (use-package aggressive-indent :quelpa
+    :config
+    (add-hook 'all-lisp-modes-hook 'aggressive-indent-mode)
+    (add-hook 'go-mode-hook 'aggressive-indent-mode))
+
+#+end_src
+
+** auto fill
+#+begin_src emacs-lisp
+  (defun my-auto-fill-comments ()
+    (setq-local comment-auto-fill-only-comments t)
+    (auto-fill-mode 1))
+  (add-hook 'prog-mode-hook 'my-auto-fill-comments)
+#+end_src
+
+** avy
+#+begin_src emacs-lisp
+  (message "avy")
+  (use-package avy :quelpa
+    :bind (("C-s" . avy-goto-char-2)
+           ("C-S-s" . avy-goto-line)))
+#+end_src
+
+** bookmarks
+#+begin_src emacs-lisp
+  (message "bm")
+  (use-package bm :quelpa (:stable nil)
+    :bind (("<C-f2>" . bm-toggle)
+           ("<f2>"   . bm-next)
+           ("<S-f2>" . bm-previous)))
+#+end_src
+
+** centered window
+#+begin_src emacs-lisp
+  (message "centered-window-mode")
+  (use-package centered-window-mode :quelpa (:stable nil)
+    :config
+    (add-hook 'my-look-and-feel-hook 'centered-window-mode))
+#+end_src
+
+** company
+#+begin_src emacs-lisp
+  (message "company")
+  (use-package company :quelpa
+    :config
+    (setq company-idle-delay 0)
+    (setq company-echo-delay 0)
+    (setq company-show-numbers t)
+    (setq company-minimum-prefix-length 2)
+    (add-hook 'prog-mode-hook 'company-mode))
+
+  ;; (use-package pos-tip :quelpa)
+
+  ;; (use-package company-quickhelp :quelpa
+  ;;   :config
+  ;;   (company-quickhelp-mode 0)
+  ;;   (setq company-quickhelp-delay 0))
+#+end_src
+
+** css
+#+begin_src emacs-lisp
+  (setq css-indent-offset 2)
+#+end_src
+
+** diminish
+#+begin_src emacs-lisp
+  (message "diminish")
+  (use-package diminish :quelpa
+    :config
+    (diminish 'visual-line-mode))
+#+end_src
+
+** dired
+#+begin_src emacs-lisp
+  (add-hook 'dired-mode-hook 'dired-hide-details-mode)
+
+  (message "dired-rainbow")
+  (use-package dired-rainbow :quelpa (:stable nil))
+#+end_src
+
+** elfeed
+#+begin_src emacs-lisp
+  (message "elfeed")
+  (use-package elfeed :quelpa
+    :config
+    (setq elfeed-feeds '("http://planet.emacsen.org/atom.xml")
+          elfeed-show-entry-switch 'display-buffer))
+#+end_src
+
+** emmet
+#+begin_src emacs-lisp
+  (message "emmet-mode")
+  (use-package emmet-mode :quelpa
+    :config
+    (add-hook 'web-mode-hook 'emmet-mode)
+    (add-hook 'css-mode 'emmet-mode)
+    (add-hook 'scss-mode 'emmet-mode))
+#+end_src
+
+** evil
+#+begin_src emacs-lisp
+  (message "undo-tree")
+  (use-package undo-tree :quelpa (:stable nil) :diminish undo-tree-mode
+    :config
+    (setq undo-tree-auto-save-history nil))
+  (message "goto-chg")
+  (use-package goto-chg :quelpa
+    (goto-chg :stable nil :fetcher github :repo "benaiah/goto-chg"))
+
+  (message "evil")
+  (use-package evil :quelpa
+    :diminish evil-mode
+    :config
+    (evil-mode 1)
+    (defun evil-undefine ()
+      (interactive)
+      (let (evil-mode-map-alist)
+        (call-interactively (key-binding (this-command-keys)))))
+    (define-key evil-normal-state-map "\C-a" 'evil-undefine)
+    (define-key evil-insert-state-map "\C-a" 'evil-undefine)
+    (define-key evil-visual-state-map "\C-a" 'evil-undefine)
+    (define-key evil-motion-state-map "\C-a" 'evil-undefine)
+    (define-key evil-normal-state-map "\C-e" 'evil-undefine)
+    (define-key evil-insert-state-map "\C-e" 'evil-undefine)
+    (define-key evil-visual-state-map "\C-e" 'evil-undefine)
+    (define-key evil-motion-state-map "\C-e" 'evil-undefine)
+    (define-key evil-normal-state-map "\C-f" 'evil-undefine)
+    (define-key evil-insert-state-map "\C-f" 'evil-undefine)
+    (define-key evil-insert-state-map "\C-f" 'evil-undefine)
+    (define-key evil-normal-state-map "\C-b" 'evil-undefine)
+    (define-key evil-insert-state-map "\C-b" 'evil-undefine)
+    (define-key evil-visual-state-map "\C-b" 'evil-undefine)
+    (define-key evil-normal-state-map "\C-d" 'evil-undefine)
+    (define-key evil-insert-state-map "\C-d" 'evil-undefine)
+    (define-key evil-visual-state-map "\C-d" 'evil-undefine)
+    (define-key evil-normal-state-map "\C-n" 'evil-undefine)
+    (define-key evil-insert-state-map "\C-n" 'evil-undefine)
+    (define-key evil-visual-state-map "\C-n" 'evil-undefine)
+    (define-key evil-normal-state-map "\C-p" 'evil-undefine)
+    (define-key evil-insert-state-map "\C-p" 'evil-undefine)
+    (define-key evil-visual-state-map "\C-p" 'evil-undefine)
+    (define-key evil-normal-state-map "\C-w" 'evil-undefine)
+    (define-key evil-insert-state-map "\C-w" 'evil-undefine)
+    (define-key evil-visual-state-map "\C-w" 'evil-undefine)
+    (define-key evil-normal-state-map "\C-y" 'evil-undefine)
+    (define-key evil-insert-state-map "\C-y" 'evil-undefine)
+    (define-key evil-visual-state-map "\C-y" 'evil-undefine)
+    (define-key evil-normal-state-map "\C-k" 'evil-undefine)
+    (define-key evil-insert-state-map "\C-k" 'evil-undefine)
+    (define-key evil-visual-state-map "\C-k" 'evil-undefine)
+    (define-key evil-normal-state-map "Q" 'evil-undefine)
+    (define-key evil-visual-state-map "Q" 'evil-undefine)
+    (define-key evil-normal-state-map (kbd "TAB") 'evil-undefine)
+    (define-key evil-visual-state-map (kbd "TAB") 'evil-undefine)
+
+    ;; C-g should get me out of everything and into normal state
+    (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state))
+
+  (message "key-chord")
+  (use-package key-chord :quelpa
+    (key-chord :stable nil :fetcher github :repo "benaiah/key-chord")
+    :requires evil
+    :config
+    (key-chord-mode 1)
+    (key-chord-define evil-insert-state-map "jk" 'evil-normal-state))
+
+  (message "evil-surround")
+  (use-package evil-surround :quelpa (:stable nil)
+    :requires evil
+    :config
+    (global-evil-surround-mode 1))
+
+  (message "evil-matchit")
+  (use-package evil-matchit :quelpa
+    :requires evil
+    :config
+    (setq evilmi-may-jump-by-percentage nil)
+    (global-evil-matchit-mode))
+
+  (message "evil-terminal-cursor-changer")
+  (use-package evil-terminal-cursor-changer :quelpa (:stable nil))
+#+end_src
+
+** eww
+#+begin_src emacs-lisp
+  (setq browse-url-browser-function 'eww-browse-url)
+#+end_src
+
+** eyebrowse
+#+begin_src emacs-lisp
+  (message "eyebrowse")
+  (use-package eyebrowse :quelpa
+    :config
+    (eyebrowse-mode t)
+    (eyebrowse-setup-opinionated-keys)
+    (setq eyebrowse-new-workspace t))
+#+end_src
+** fancy battery
+#+begin_src emacs-lisp
+  (message "fancy-battery")
+  (use-package fancy-battery :quelpa
+    :config (fancy-battery-mode))
+#+end_src
+
+** flycheck
+#+begin_src emacs-lisp
+  (message "flycheck")
+  (use-package flycheck :quelpa
+    :config
+    (global-flycheck-mode)
+    (setq flycheck-disabled-checkers '(emacs-lisp-checkdoc))
+    (defun disable-elisp-checkdoc-hook ()
+      (setq-local flycheck-disabled-checkers '(emacs-lisp-checkdoc)))
+    (add-hook 'emacs-lisp-mode-hook 'disable-elisp-checkdoc-hook)
+    (add-hook 'lisp-interaction-mode-hook 'disable-elisp-checkdoc-hook))
+#+end_src
+
+** fold-this
+#+begin_src emacs-lisp
+  (message "fold-this")
+  (use-package fold-this :quelpa)
+
+  (global-set-key (kbd "C-c h") 'fold-this)
+  (global-set-key (kbd "C-c H") 'fold-this-unfold-at-point)
+  (global-set-key (kbd "C-c M-h") 'fold-this-all)
+  (global-set-key (kbd "C-c M-H") 'fold-this-unfold-all)
+#+end_src
+
+** fsbot-data-browser
+#+begin_src emacs-lisp
+  (message "fsbot-data-browser")
+  (use-package fsbot-data-browser :quelpa)
+#+end_src
+
+** geiser
+#+begin_src emacs-lisp
+  (message "geiser")
+  (use-package geiser :quelpa
+    :config
+    (setq geiser-repl-read-only-prompt-p nil))
+#+end_src
+
+** git gutter
+#+begin_src emacs-lisp
+  (message "git-gutter")
+  (use-package git-gutter :quelpa
+    :config
+    (global-git-gutter-mode +1))
+#+end_src
+
+** go
+#+begin_src emacs-lisp
+  (message "go-mode")
+  (use-package go-mode :quelpa
+    :config
+    (defun my-go-mode-hook ()
+      (setq tab-width 2))
+    (add-hook 'go-mode-hook 'my-go-mode-hook)
+    (add-hook 'before-save-hook 'gofmt-before-save)
+    ;; flycheck shows gofmt errors, no need for it to have its own
+    ;; buffer
+    (setq gofmt-show-errors nil))
+
+  (message "company-go")
+  (use-package company-go :quelpa
+    :config
+    (add-to-list 'company-backends 'company-go))
+
+  (message "go-eldoc")
+  (use-package go-eldoc :quelpa
+    :config
+    (add-hook 'go-mode-hook 'go-eldoc-setup))
+#+end_src
+
+** ido
+#+begin_src emacs-lisp
+  (message "ido")
+  (use-package ido :quelpa :config
+    (setq ido-auto-merge-delay-time 99999999)
+    (setq ido-everywhere t)
+    (setq ido-virtual-buffers t)
+    (ido-mode))
+  (message "flx-ido")
+  (use-package flx-ido :quelpa :requires ido :config (flx-ido-mode))
+  (message "ido-vertical-mode")
+  (use-package ido-vertical-mode :quelpa :requires ido :config (ido-vertical-mode))
+  (message "ido-hacks")
+  (use-package ido-hacks :quelpa (:stable nil) :requires ido :config (ido-hacks-mode))
+  (message "ido-ubiquitous")
+  (use-package ido-ubiquitous :quelpa :requires ido :config (ido-ubiquitous-mode))
+#+end_src
+
+** js
+#+begin_src emacs-lisp
+  (defun set-js-prettify-symbols-alist ()
+    (setq-local prettify-symbols-alist
+                '(("jQuery" . "﹩")
+                  ("return" . "←")
+                  ("that" . "⧬")
+                  ("prototype" . "∋")
+                  ("this" . "@")
+                  ("function" . "λ")))
+    (prettify-symbols-mode 1))
+  (add-hook 'js-mode-hook 'set-js-prettify-symbols-alist)
+
+  (setq js2-strict-missing-semi-warning nil)
+
+  (add-to-list 'auto-mode-alist '("\\.js" . js2-mode))
+
+  ;; (message "jade")
+  ;; (use-package jade :quelpa)
+#+end_src
+
+** json
+#+begin_src emacs-lisp
+  (message "json-mode")
+  (use-package json-mode :quelpa)
+#+end_src
+
+** ledger
+#+begin_src emacs-lisp
+  (message "ledger-mode")
+  (use-package ledger-mode :quelpa
+    :config
+    (setq ledger-binary-path "~/.local/bin/hledger"
+          ledger-mode-should-check-version nil
+          ledger-init-file-name " "
+          ledger-highlight-xact-under-point nil)
+    (add-to-list 'auto-mode-alist '("\\.\\(h?ledger\\|journal\\|j\\)$" . ledger-mode)))
+#+end_src
+
+** magit
+#+begin_src emacs-lisp
+  (message "magit")
+  (use-package magit :quelpa
+    :config
+    (setq magit-display-buffer-function
+          (lambda (buffer)
+            (display-buffer
+             buffer (if (and (derived-mode-p 'magit-mode)
+                             (memq (with-current-buffer buffer major-mode)
+                                   '(magit-process-mode
+                                     magit-revision-mode
+                                     magit-stash-mode)))
+                        nil
+                      '(display-buffer-same-window))))))
+#+end_src
+
+** markdown
+#+begin_src emacs-lisp
+  (message "markdown-mode")
+  (use-package markdown-mode :quelpa)
+#+end_src
+
+** neotree
+#+begin_src emacs-lisp
+  (message "neotree")
+  (use-package neotree :quelpa
+    :config
+    (global-set-key [f8] 'neotree-toggle))
+#+end_src
+
+** org
+#+begin_src emacs-lisp
+  (message "org")
+  (use-package org :quelpa
+    :config
+    (add-hook 'org-mode-hook 'org-indent-mode)
+    (message "org-preview-html")
+    (use-package org-preview-html :quelpa (:stable nil))
+
+    (require 'cl-lib)
+    (defun org-nav-get-regex-ocurrences-with-positions (regexp string)
+      (save-match-data
+        (let ((pos 0)
+              matches)
+          (while (string-match regexp string pos)
+            (setq pos (match-end 0))
+            (push `(,(match-string 0 string) . ,pos) matches))
+          matches)))
+
+    (defun org-nav-get-buffer-headings ()
+      (nreverse (org-nav-get-regex-ocurrences-with-positions
+                 org-heading-regexp (buffer-string))))
+
+    (defun org-nav-jump-to-heading ()
+      (interactive)
+      (let* ((buffer-headings (org-nav-get-buffer-headings))
+             (selected-heading (completing-read "Heading: " (org-nav-get-buffer-headings) nil t)))
+        (goto-char (+ 1 (cdr (cl-find-if
+                              (lambda (el)
+                                (string-equal (car el) selected-heading))
+                              buffer-headings))))
+        (org-show-entry)))
+    :bind (:map org-mode-map
+                ("C-c j" . org-nav-jump-to-heading)))
+#+end_src
+
+** projectile
+#+begin_src emacs-lisp
+  (message "projectile")
+  (use-package projectile :quelpa
+    :diminish projectile-mode
+    :config
+    (projectile-global-mode t)
+    (setq projectile-enable-caching t
+          projectile-switch-project-action 'projectile-dired
+          projectile-use-git-grep t))
+#+end_src
+
+** rainbow-mode
+#+begin_src emacs-lisp
+  (message "rainbow-mode")
+  (use-package rainbow-mode :quelpa)
+#+end_src
+
+** seethru
+#+begin_src emacs-lisp
+  (message "seethru")
+  (use-package seethru :quelpa (:stable nil)
+    :config
+    (seethru-recommended-keybinds))
+#+end_src
+
+** spaceline
+#+begin_src emacs-lisp
+  (message "spaceline")
+  (use-package spaceline :quelpa
+    :config
+    (require 'spaceline-config)
+    (setq powerline-default-separator 'wave
+          spaceline-highlight-face-func 'spaceline-highlight-face-evil-state
+          ns-use-srgb-colorspace nil
+          spaceline-window-numbers-unicode t)
+    (add-hook 'my-look-and-feel-hook 'powerline-reset)
+    (setq ns-use-srgb-colorspace nil)
+    (spaceline-spacemacs-theme))
+#+end_src
+
+** smartparens
+#+begin_src emacs-lisp
+  (message "smartparens")
+  (use-package smartparens :quelpa
+    :diminish smartparens-mode smartparens-global-mode
+    :config
+    (require 'smartparens-config)
+    (smartparens-global-mode t)
+    (show-smartparens-global-mode nil)
+    (setq sp-autoescape-string-quote nil)
+    ;; Add smartparens-strict-mode to all sp--lisp-modes hooks. C-h v sp--lisp-modes
+    ;; to customize/view this list.
+    (mapc (lambda (mode)
+            (add-hook (intern (format "%s-hook" (symbol-name mode)))
+                      (lambda ()
+                        (smartparens-strict-mode)
+                        (sp-use-paredit-bindings))))
+          sp--lisp-modes))
+
+  (message "evil-smartparens")
+  (use-package evil-smartparens :quelpa
+    :requires evil smartparens
+    :config
+    (add-hook 'smartparens-strict-mode-hook #'evil-smartparens-mode))
+
+  ;; (use-package highlight-parentheses :quelpa
+  ;;   :config
+  ;;   (highlight-parentheses-mode))
+  (message "hl-sexp")
+  (use-package hl-sexp :quelpa
+    :config
+    (add-hook 'all-lisp-modes-hook 'hl-sexp-mode))
+  (message "rainbow-delimiters")
+  (use-package rainbow-delimiters :quelpa
+    :config
+    (add-hook 'all-lisp-modes-hook 'rainbow-delimiters-mode))
+#+end_src
+
+** undo-tree
+#+begin_src emacs-lisp
+  (message "undo-tree")
+  (use-package undo-tree :quelpa (:stable nil)
+    (setq undo-tree-auto-save-history nil))
+#+end_src
+
+** web mode
+#+begin_src emacs-lisp
+  (message "web-mode")
+  (use-package web-mode :quelpa
+    :config
+    (add-to-list 'auto-mode-alist '("\\.php" . web-mode))
+    (add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
+    (add-to-list 'auto-mode-alist '("\\.tpl\\.php\\'" . web-mode))
+    (add-to-list 'auto-mode-alist '("\\.[gj]sp\\'" . web-mode))
+    (add-to-list 'auto-mode-alist '("\\.as[cp]x\\'" . web-mode))
+    (add-to-list 'auto-mode-alist '("\\.erb\\'" . web-mode))
+    (add-to-list 'auto-mode-alist '("\\.mustache\\'" . web-mode))
+    (add-to-list 'auto-mode-alist '("\\.djhtml\\'" . web-mode))
+    (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
+    (add-to-list 'auto-mode-alist '("\\.jsx\\'" . web-mode))
+    
+    (defun my-web-mode-hook ()
+      "Hooks for Web mode."
+      (interactive)
+      (setq web-mode-markup-indent-offset 2)
+      (setq web-mode-css-indent-offset 2)
+      (setq web-mode-code-indent-offset 2)
+      (setq web-mode-block-padding 2)
+      (setq web-mode-extra-auto-pairs
+            '(("php"  . (("open" "close")
+                         ("open" "close")))))
+      (setq web-mode-enable-current-element-highlight t)
+      (setq web-mode-enable-auto-pairing t
+            web-mode-enable-auto-closing t
+            web-mode-enable-auto-opening t
+            web-mode-enable-auto-indentation t
+            web-mode-enable-auto-quoting t
+            web-mode-enable-css-colorization t
+            web-mode-enable-part-face t)
+      ;; Make company-dabbrev complete underscored_php_words
+      (setq-local company-dabbrev-char-regexp
+                  (rx (in word "_"))))
+    (add-hook 'web-mode-hook  'my-web-mode-hook))
+
+  ;; (use-package php-eldoc :quelpa (:stable nil)
+  ;;   :config
+  ;;   (php-eldoc-enable)
+  ;;   (defun my-php-eldoc-hook () 
+  ;;     (set (make-local-variable
+  ;;           'eldoc-documentation-function)
+  ;;          'php-eldoc-function)
+  ;;     (eldoc-mode 1))
+  ;;   (add-hook 'web-mode-hook 'my-php-eldoc-hook))
+
+  (use-package ac-php
+    :quelpa (:stable nil :repo "xcwen/ac-php" :fetcher github
+                     :files ("ac-php.el" "company-php.el"))
+    :requires web-mode
+    :config
+    (defun my-ac-php-hook ()
+      (require 'company-php)
+      (add-to-list 'company-backends 'company-ac-php-backend))
+    (add-hook 'web-mode-hook 'my-ac-php-hook))
+#+end_src
+
+* run stuff at the end
+#+begin_src emacs-lisp
+(my-look-and-feel)
+#+end_src
