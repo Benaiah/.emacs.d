@@ -272,9 +272,9 @@ Enable some modes I want on by default
 
   (defun my-look-and-feel ()
     (interactive)
-    (set-face-attribute 'default nil :height 100)
+    (set-face-attribute 'default nil :height 120)
     (set-face-attribute 'mode-line nil
-                        :height 100
+                        :height 120
                         :box nil)
 
     ;; Turn off clutter that's on by default
