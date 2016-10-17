@@ -655,9 +655,10 @@ Enable some modes I want on by default
     (prettify-symbols-mode 1))
   (add-hook 'js-mode-hook 'set-js-prettify-symbols-alist)
 
-  (setq js2-strict-missing-semi-warning nil)
-
-  (add-to-list 'auto-mode-alist '("\\.js" . js2-mode))
+  (use-package js2-mode :quelpa
+    :config
+    (setq js2-strict-missing-semi-warning nil)
+    (add-to-list 'auto-mode-alist '("\\.js" . js2-mode)))
 
   ;; (message "jade")
   ;; (use-package jade :quelpa)
