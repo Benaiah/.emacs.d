@@ -25,7 +25,8 @@ This will install or upgrade quelpa when necessary.
   (setq custom-file "~/.emacs.d/emacs-custom.el")
 
   (if (file-exists-p custom-file)
-      (load custom-file)
+      ;; (load custom-file)
+      nil
     (write-region "" nil custom-file))
 #+end_src
 * better defaults
@@ -263,18 +264,18 @@ Enable some modes I want on by default
 * look & feel
 #+begin_src emacs-lisp
   (defmacro with-system (type &rest body)
-      "Evaluate body if `system-type' equals type."
-      `(when (eq system-type ,type)
-         ,@body))
+    "Evaluate body if `system-type' equals type."
+    `(when (eq system-type ,type)
+       ,@body))
 
   (with-system 'darwin
                (setq ns-use-native-fullscreen nil))
 
   (defun my-look-and-feel ()
     (interactive)
-    (set-face-attribute 'default nil :height 120)
+    (set-face-attribute 'default nil :height 100)
     (set-face-attribute 'mode-line nil
-                        :height 120
+                        :height 100
                         :box nil)
 
     ;; Turn off clutter that's on by default
@@ -288,6 +289,9 @@ Enable some modes I want on by default
     (show-paren-mode 1)
     (column-number-mode 1)
 
+    ;; Only show cursor in active window
+    (setq-default cursor-in-non-selected-windows nil)
+
     (set-face-attribute 'mode-line nil
                         :underline nil
                         :overline nil)
@@ -296,8 +300,10 @@ Enable some modes I want on by default
                         :underline nil
                         :overline nil)
 
-    (set-face-attribute 'default t :font "Source Code Pro")
-    (set-frame-font "Source Code Pro" nil t)
+    (setq mac-allow-anti-aliasing t)
+    (set-default-font "Source Code Pro")
+    (set-frame-font "Source Code Pro")
+
     (run-hooks 'my-look-and-feel-hook))
 #+end_src
 ** themes
@@ -428,6 +434,18 @@ Enable some modes I want on by default
 
   (message "dired-rainbow")
   (use-package dired-rainbow :quelpa (:stable nil))
+
+  (use-package dired-subtree :quelpa (:stable nil)
+    :config
+    (define-key dired-mode-map (kbd "i") 'dired-subtree-insert)
+    (define-key dired-mode-map (kbd "k") 'dired-subtree-remove))
+
+  (use-package dired-filter :quelpa (:stable nil)
+    :defer t
+    :config
+    (setq dired-filter-prefix nil)
+    (define-key dired-mode-map (kbd "C-c f") dired-filter-map)
+    (evil-define-key 'normal dired-mode-map (kbd "f") dired-filter-map))
 #+end_src
 
 ** elfeed
@@ -435,14 +453,16 @@ Enable some modes I want on by default
   (message "elfeed")
   (use-package elfeed :quelpa
     :config
-    (setq elfeed-feeds '("http://planet.emacsen.org/atom.xml")
+    (setq elfeed-feeds '("http://planet.emacsen.org/atom.xml"
+                         "http://elpa.brause.cc/melpa-stable.xml"
+                         "http://elpa.brause.cc/melpa.xml")
           elfeed-show-entry-switch 'display-buffer))
 #+end_src
 
 ** emmet
 #+begin_src emacs-lisp
   (message "emmet-mode")
-  (use-package emmet-mode :quelpa
+  (use-package emmet-mode :quelpa (:stable nil)
     :config
     (add-hook 'web-mode-hook 'emmet-mode)
     (add-hook 'css-mode 'emmet-mode)
@@ -624,6 +644,19 @@ Enable some modes I want on by default
     (add-hook 'go-mode-hook 'go-eldoc-setup))
 #+end_src
 
+** haxe
+#+begin_src emacs-lisp
+  (use-package haxe-mode :quelpa (:stable nil))
+#+end_src
+
+** highlight-indent-guides
+#+begin_src emacs-lisp
+  (use-package highlight-indent-guides :quelpa (:stable nil)
+    :config
+    (setq highlight-indent-guides-method 'character)
+    (add-hook 'moonscript-mode-hook 'highlight-indent-guides-mode))
+#+end_src
+
 ** ido
 #+begin_src emacs-lisp
   (message "ido")
@@ -631,6 +664,7 @@ Enable some modes I want on by default
     (setq ido-auto-merge-delay-time 99999999)
     (setq ido-everywhere t)
     (setq ido-virtual-buffers t)
+    (setq ido-use-faces nil)
     (ido-mode))
   (message "flx-ido")
   (use-package flx-ido :quelpa :requires ido :config (flx-ido-mode))
@@ -705,6 +739,11 @@ Enable some modes I want on by default
   (use-package markdown-mode :quelpa)
 #+end_src
 
+** moonscript
+#+begin_src emacs-lisp
+  (use-package moonscript :quelpa (:stable nil))
+#+end_src
+
 ** neotree
 #+begin_src emacs-lisp
   (message "neotree")
@@ -766,6 +805,24 @@ Enable some modes I want on by default
 #+begin_src emacs-lisp
   (message "rainbow-mode")
   (use-package rainbow-mode :quelpa)
+#+end_src
+
+** scss
+#+begin_src emacs-lisp
+  ;; (add-hook 'scss-mode-hook
+  ;;           (lambda ()
+  ;;             (set (make-local-variable 'company-backends) '(company-css company-capf company-files))))
+
+  (use-package rainbow-mode
+    :quelpa
+    (rainbow-mode
+     :fetcher url :url
+     "http://git.savannah.gnu.org/cgit/emacs/elpa.git/plain/packages/rainbow-mode/rainbow-mode.el")
+
+    :config
+    (add-hook 'css-mode-hook 'rainbow-mode)
+    (add-hook 'scss-mode-hook 'rainbow-mode))
+
 #+end_src
 
 ** seethru
@@ -885,15 +942,15 @@ Enable some modes I want on by default
   ;;     (eldoc-mode 1))
   ;;   (add-hook 'web-mode-hook 'my-php-eldoc-hook))
 
-  (use-package ac-php
-    :quelpa (:stable nil :repo "xcwen/ac-php" :fetcher github
-                     :files ("ac-php.el" "company-php.el"))
-    :requires web-mode
-    :config
-    (defun my-ac-php-hook ()
-      (require 'company-php)
-      (add-to-list 'company-backends 'company-ac-php-backend))
-    (add-hook 'web-mode-hook 'my-ac-php-hook))
+  ;; (use-package ac-php
+  ;;   :quelpa (:stable nil :repo "xcwen/ac-php" :fetcher github
+  ;;                    :files ("ac-php.el" "company-php.el"))
+  ;;   :requires web-mode
+  ;;   :config
+  ;;   (defun my-ac-php-hook ()
+  ;;     (require 'company-php)
+  ;;     (add-to-list 'company-backends 'company-ac-php-backend))
+  ;;   (add-hook 'web-mode-hook 'my-ac-php-hook))
 #+end_src
 
 * run stuff at the end
